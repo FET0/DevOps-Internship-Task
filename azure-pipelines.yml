@@ -1,0 +1,142 @@
+trigger:
+  - main
+  - develop
+  - release/*
+
+variables:
+  # Dynamic Tag: BranchName-BuildID (Cleaned to remove illegal chars)
+  imageTag: '$(Build.SourceBranchName)-$(Build.BuildId)'
+  acrName: 'devopstaskacr.azurecr.io' 
+  imageName: 'mywebapp'
+  # Service Connection Names
+  dockerConnection: 'MyACRConnection'
+  k8sConnection: 'MyAKSConnection'
+
+stages:
+# ------------------------------------------------------
+# STAGE 1: BUILD (CI)
+# ------------------------------------------------------
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  - job: BuildJob
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    # 1. Restore & Build .NET App
+    - task: DotNetCoreCLI@2
+      displayName: 'DotNet Restore'
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'DotNet Build'
+      inputs:
+        command: 'build'
+        projects: '**/*.csproj'
+
+    # 2. Run Tests
+    - task: DotNetCoreCLI@2
+      displayName: 'DotNet Test'
+      inputs:
+        command: 'test'
+        projects: '**/*.Tests/*.csproj'
+
+    # 3. Build & Push Docker Image (Only if not a PR)
+    # The condition ensures we validate code on PRs but don't push images
+    - task: Docker@2
+      displayName: 'Build and Push Docker Image'
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+      inputs:
+        containerRegistry: '$(dockerConnection)'
+        repository: '$(imageName)'
+        command: 'buildAndPush'
+        Dockerfile: '**/Dockerfile'
+        tags: |
+          $(imageTag)
+
+    # 4. Publish K8s Manifests as Artifacts
+    - task: PublishPipelineArtifact@1
+      displayName: 'Publish K8s Manifests'
+      inputs:
+        targetPath: '$(Pipeline.Workspace)/s/k8s'
+        artifact: 'k8s-manifests'
+
+# ------------------------------------------------------
+# STAGE 2: DEPLOY TO DEV
+# ------------------------------------------------------
+- stage: DeployDev
+  displayName: 'Deploy to Dev'
+  dependsOn: Build
+  # Run only if Build succeeded and it is NOT a Pull Request
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+  jobs:
+  - deployment: DeployDev
+    displayName: 'Deploy to Dev Environment'
+    environment: 'Dev'
+    pool:
+      vmImage: 'ubuntu-latest'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@0
+            displayName: 'Deploy to AKS (Dev)'
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: '$(k8sConnection)'
+              manifests: '$(Pipeline.Workspace)/k8s-manifests/*.yaml'
+              containers: '$(acrName)/$(imageName):$(imageTag)'
+
+# ------------------------------------------------------
+# STAGE 3: DEPLOY TO TEST
+# ------------------------------------------------------
+- stage: DeployTest
+  displayName: 'Deploy to Test'
+  dependsOn: DeployDev
+  condition: succeeded()
+  jobs:
+  - deployment: DeployTest
+    displayName: 'Deploy to Test Environment'
+    # This links to the Environment with Manual Approvals configured in ADO
+    environment: 'Test' 
+    pool:
+      vmImage: 'ubuntu-latest'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@0
+            displayName: 'Deploy to AKS (Test)'
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: '$(k8sConnection)'
+              manifests: '$(Pipeline.Workspace)/k8s-manifests/*.yaml'
+              containers: '$(acrName)/$(imageName):$(imageTag)'
+
+# ------------------------------------------------------
+# STAGE 4: DEPLOY TO PROD
+# ------------------------------------------------------
+- stage: DeployProd
+  displayName: 'Deploy to Prod'
+  dependsOn: DeployTest
+  condition: succeeded()
+  jobs:
+  - deployment: DeployProd
+    displayName: 'Deploy to Prod Environment'
+    # This links to the Environment with Manual Approvals configured in ADO
+    environment: 'Prod'
+    pool:
+      vmImage: 'ubuntu-latest'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@0
+            displayName: 'Deploy to AKS (Prod)'
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: '$(k8sConnection)'
+              manifests: '$(Pipeline.Workspace)/k8s-manifests/*.yaml'
+              containers: '$(acrName)/$(imageName):$(imageTag)'
