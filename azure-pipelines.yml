@@ -21,7 +21,7 @@ stages:
   jobs:
   - job: BuildJob
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'MyLaptopPool'
     steps:
     # 1. Restore & Build .NET App
     - task: DotNetCoreCLI@2
@@ -76,7 +76,7 @@ stages:
     displayName: 'Deploy to Dev Environment'
     environment: 'Dev'
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'MyLaptopPool'
     strategy:
       runOnce:
         deploy:
@@ -102,7 +102,7 @@ stages:
     # This links to the Environment with Manual Approvals configured in ADO
     environment: 'Test' 
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'MyLaptopPool'
     strategy:
       runOnce:
         deploy:
@@ -128,7 +128,7 @@ stages:
     # This links to the Environment with Manual Approvals configured in ADO
     environment: 'Prod'
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'MyLaptopPool'
     strategy:
       runOnce:
         deploy:
