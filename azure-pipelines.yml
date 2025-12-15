@@ -55,6 +55,7 @@ stages:
         Dockerfile: '**/Dockerfile'
         tags: |
           $(imageTag)
+          latest
 
     # 4. Publish K8s Manifests as Artifacts
     - task: PublishPipelineArtifact@1

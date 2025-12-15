@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mywebapp-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mywebapp
+  template:
+    metadata:
+      labels:
+        app: mywebapp
+    spec:
+      containers:
+      - name: mywebapp
+        # The pipeline task will automatically replace this image with the correct tag
+        image: myacr.azurecr.io/mywebapp:latest 
+        ports:
+        - containerPort: 8080

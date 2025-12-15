@@ -1,0 +1,26 @@
+﻿{
+  "build_artifactstagingdirectory": "1/a",
+  "agent_builddirectory": "1",
+  "collectionUrl": "https://dev.azure.com/fuhadtadese/",
+  "definitionName": "FET0.DevOps-Internship-Task",
+  "repositoryTrackingInfo": [
+    {
+      "identifier": "self",
+      "repositoryType": "GitHub",
+      "repositoryUrl": "https://github.com/FET0/DevOps-Internship-Task",
+      "sourcesDirectory": "1/s/DevOps-Internship-Task"
+    }
+  ],
+  "fileFormatVersion": 3,
+  "lastRunOn": "12/15/2025 11:38:13 +01:00",
+  "repositoryType": "GitHub",
+  "lastMaintenanceAttemptedOn": "",
+  "lastMaintenanceCompletedOn": "",
+  "build_sourcesdirectory": "1/s",
+  "common_testresultsdirectory": "1/TestResults",
+  "collectionId": "884ab8f3-30b3-47ff-81bc-e5d1c834b926",
+  "definitionId": "1",
+  "hashKey": "7f7bf021ac75e3e15b55205a28cd24b12e456490",
+  "repositoryUrl": "https://github.com/FET0/DevOps-Internship-Task",
+  "system": "build"
+}
